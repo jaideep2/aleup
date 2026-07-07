@@ -36,7 +36,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@aleup/core": "workspace:^"
+    "@aleup/core": "^0.1.0"
   },
   "peerDependencies": {
     "@uppy/box": "^4.0.0",

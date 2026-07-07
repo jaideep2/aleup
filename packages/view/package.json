@@ -29,11 +29,11 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@aleup/core": "workspace:^"
+    "@aleup/core": "^0.1.0"
   },
   "peerDependencies": {
-    "@aleup/docx": "workspace:^",
-    "@aleup/editor": "workspace:^",
+    "@aleup/docx": "^0.1.0",
+    "@aleup/editor": "^0.1.0",
     "react": "^18.0.0 || ^19.0.0",
     "react-dom": "^18.0.0 || ^19.0.0"
   },
@@ -46,8 +46,8 @@
     }
   },
   "devDependencies": {
-    "@aleup/docx": "workspace:^",
-    "@aleup/editor": "workspace:^"
+    "@aleup/docx": "^0.1.0",
+    "@aleup/editor": "^0.1.0"
   },
   "publishConfig": {
     "access": "restricted",

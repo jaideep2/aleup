@@ -63,7 +63,7 @@ importers:
   packages/connect:
     dependencies:
       '@aleup/core':
-        specifier: workspace:^
+        specifier: ^0.1.0
         version: link:../core
 
   packages/core: {}
@@ -111,7 +111,7 @@ importers:
   packages/import:
     dependencies:
       '@aleup/core':
-        specifier: workspace:^
+        specifier: ^0.1.0
         version: link:../core
       react:
         specifier: ^18.0.0 || ^19.0.0
@@ -148,7 +148,7 @@ importers:
   packages/view:
     dependencies:
       '@aleup/core':
-        specifier: workspace:^
+        specifier: ^0.1.0
         version: link:../core
       react:
         specifier: ^18.0.0 || ^19.0.0
@@ -158,10 +158,10 @@ importers:
         version: 19.2.7(react@19.2.7)
     devDependencies:
       '@aleup/docx':
-        specifier: workspace:^
+        specifier: ^0.1.0
         version: link:../docx
       '@aleup/editor':
-        specifier: workspace:^
+        specifier: ^0.1.0
         version: link:../editor
 
 packages:
@@ -4236,7 +4236,7 @@ snapshots:
       '@aws-sdk/s3-request-presigner': 3.1080.0
       body-parser: 1.20.3(supports-color@8.1.1)
       common-tags: 1.8.2
-      connect-redis: 7.1.1(express-session@1.18.1(supports-color@8.1.1))
+      connect-redis: 7.1.1(express-session@1.18.1)
       content-disposition: 0.5.4
       cookie-parser: 1.4.6
       cors: 2.8.6
@@ -4583,7 +4583,7 @@ snapshots:
 
   concat-map@0.0.1: {}
 
-  connect-redis@7.1.1(express-session@1.18.1(supports-color@8.1.1)):
+  connect-redis@7.1.1(express-session@1.18.1):
     dependencies:
       express-session: 1.18.1(supports-color@8.1.1)
 
