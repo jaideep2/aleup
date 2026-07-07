@@ -9,9 +9,9 @@ const config: Config = {
   favicon: "img/favicon.ico",
 
   // GitHub Pages deploy target (enabled once the repo goes public).
-  url: "https://aleup.github.io",
-  baseUrl: "/",
-  organizationName: "aleup",
+  url: "https://jaideep2.github.io",
+  baseUrl: "/aleup/",
+  organizationName: "jaideep2",
   projectName: "aleup",
 
   onBrokenLinks: "throw",
@@ -40,7 +40,7 @@ const config: Config = {
       items: [
         { type: "docSidebar", sidebarId: "docs", position: "left", label: "Docs" },
         { to: "/docs/examples", label: "Examples", position: "left" },
-        { href: "https://github.com/aleup/aleup", label: "GitHub", position: "right" },
+        { href: "https://github.com/jaideep2/aleup", label: "GitHub", position: "right" },
       ],
     },
     footer: {
@@ -56,7 +56,7 @@ const config: Config = {
         },
         {
           title: "More",
-          items: [{ label: "GitHub", href: "https://github.com/aleup/aleup" }],
+          items: [{ label: "GitHub", href: "https://github.com/jaideep2/aleup" }],
         },
       ],
       copyright: `Copyright © ${new Date().getFullYear()} JD. Apache-2.0 licensed.`,

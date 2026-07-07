@@ -21,6 +21,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           path-to-signatures: "signatures/cla.json"
-          path-to-document: "https://github.com/aleup/aleup/blob/main/CLA.md"
+          path-to-document: "https://github.com/jaideep2/aleup/blob/main/CLA.md"
           branch: "cla-signatures"
           allowlist: "dependabot[bot],github-actions[bot]"
