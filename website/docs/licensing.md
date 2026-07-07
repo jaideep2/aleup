@@ -5,7 +5,7 @@ title: Licensing
 
 # Licensing
 
-aleup is licensed under **[Apache-2.0](https://github.com/aleup/aleup/blob/main/LICENSE)**,
+aleup is licensed under **[Apache-2.0](https://github.com/jaideep2/aleup/blob/main/LICENSE)**,
 © 2026 JD. That means you can use it freely in commercial products and services; the
 license adds an explicit patent grant and requires preserving attribution notices.
 
@@ -20,7 +20,7 @@ Two things Apache-2.0 does *not* grant:
 ## Contributing
 
 Contributions are accepted under a one-time
-[Contributor License Agreement](https://github.com/aleup/aleup/blob/main/CLA.md) (a bot
+[Contributor License Agreement](https://github.com/jaideep2/aleup/blob/main/CLA.md) (a bot
 prompts on your first PR). Your contribution stays yours and stays credited; the CLA
 licenses it to the project so the project's licensing remains future-proof.
 

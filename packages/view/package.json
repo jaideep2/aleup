@@ -62,7 +62,7 @@
   "author": "JD",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/aleup/aleup.git",
+    "url": "git+https://github.com/jaideep2/aleup.git",
     "directory": "packages/view"
   }
 }
