@@ -1,0 +1,75 @@
+/* @aleup/view neutral state styling. OPTIONAL — the components only emit
+ * data-aleup-* attributes; bring your own styles or override the variables. */
+
+[data-aleup-viewer-state] {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--aleup-muted-fg, #a3a3a3);
+  font-size: 0.875rem;
+}
+
+[data-aleup-spinner] {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  border: 2px solid var(--aleup-spinner-track, #e5e5e5);
+  border-top-color: var(--aleup-spinner, #737373);
+  animation: aleup-spin 0.8s linear infinite;
+}
+
+@keyframes aleup-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+[data-aleup-download] {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 0.5rem;
+  background: var(--aleup-accent, #171717);
+  color: var(--aleup-accent-fg, #fff);
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+[data-aleup-download]:hover {
+  background: var(--aleup-accent-hover, #404040);
+}
+
+[data-aleup-pdf],
+[data-aleup-frame] {
+  height: 100%;
+  width: 100%;
+  border: 0;
+  background: var(--aleup-frame-bg, #f5f5f5);
+}
+
+[data-aleup-image] {
+  margin: 0 auto;
+  max-height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+  padding: 1rem;
+}
+
+[data-aleup-text] {
+  padding: 1.25rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  color: var(--aleup-page-fg, #262626);
+}
+
+[data-aleup-docx] {
+  height: 100%;
+  overflow: auto;
+}

@@ -1,0 +1,41 @@
+name: Site
+
+on:
+  push:
+    branches: [main]
+    paths: [website/**, packages/**]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm --filter aleup-website build
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: website/build
+
+  # Enabled the day the repo goes public (GitHub Pages sites are always public;
+  # Pages on a private repo needs a paid plan). Until then the artifact from the
+  # build job is the preview.
+  deploy:
+    if: vars.DEPLOY_PAGES == 'true'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

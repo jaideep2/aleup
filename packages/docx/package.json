@@ -1,0 +1,38 @@
+{
+  "name": "@aleup/docx",
+  "version": "0.1.0",
+  "description": "DOCX ⇄ HTML/Markdown translation and high-fidelity editing round-trips over docxodus (WASM).",
+  "license": "UNLICENSED",
+  "type": "module",
+  "sideEffects": false,
+  "files": ["dist"],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "aleup-copy-docxodus-wasm": "./dist/bin/copy-wasm.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "peerDependencies": {
+    "docxodus": "^6.4.0"
+  },
+  "devDependencies": {
+    "docxodus": "^6.4.0"
+  },
+  "publishConfig": {
+    "access": "restricted",
+    "registry": "https://npm.pkg.github.com"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

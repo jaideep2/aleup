@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm test
+      - name: Verify "use client" directives survive compilation
+        run: |
+          for pkg in import editor view; do
+            if ! grep -rl '^"use client";' packages/$pkg/dist --include='*.js' -q; then
+              echo "::error::no 'use client' directive found in packages/$pkg/dist"
+              exit 1
+            fi
+          done
+      - name: Verify THIRD_PARTY_LICENSES.md is current
+        run: |
+          pnpm gen-licenses
+          git diff --exit-code THIRD_PARTY_LICENSES.md

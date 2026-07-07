@@ -1,0 +1,59 @@
+{
+  "name": "@aleup/view",
+  "version": "0.1.0",
+  "description": "Format-routing document viewer. Heavy renderers (DOCX, markdown) live behind opt-in subpaths.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "sideEffects": ["*.css"],
+  "files": ["dist"],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./docx": {
+      "types": "./dist/docx/index.d.ts",
+      "default": "./dist/docx/index.js"
+    },
+    "./markdown": {
+      "types": "./dist/markdown/index.d.ts",
+      "default": "./dist/markdown/index.js"
+    },
+    "./styles.css": "./dist/styles.css",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && cp src/styles.css dist/styles.css",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@aleup/core": "workspace:^"
+  },
+  "peerDependencies": {
+    "@aleup/docx": "workspace:^",
+    "@aleup/editor": "workspace:^",
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@aleup/docx": {
+      "optional": true
+    },
+    "@aleup/editor": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@aleup/docx": "workspace:^",
+    "@aleup/editor": "workspace:^"
+  },
+  "publishConfig": {
+    "access": "restricted",
+    "registry": "https://npm.pkg.github.com"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
