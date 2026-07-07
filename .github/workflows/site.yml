@@ -19,6 +19,13 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - run: pnpm --filter aleup-website build
+      - name: Build themed example demos into /demos/*
+        run: |
+          for ex in shadcn mui daisyui; do
+            pnpm --filter aleup-example-$ex build
+            mkdir -p website/build/demos/$ex
+            cp -R examples/$ex/dist/* website/build/demos/$ex/
+          done
       - uses: actions/upload-pages-artifact@v3
         with:
           path: website/build
