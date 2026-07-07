@@ -1,0 +1,42 @@
+{
+  "name": "@aleup/pdf",
+  "version": "0.1.0",
+  "description": "DOM \u2192 paginated PDF export over html2pdf.js, with the Tailwind v4 oklch() color shim.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "peerDependencies": {
+    "html2pdf.js": "^0.14.0"
+  },
+  "devDependencies": {
+    "html2pdf.js": "^0.14.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "author": "JD",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aleup/aleup.git",
+    "directory": "packages/pdf"
+  }
+}

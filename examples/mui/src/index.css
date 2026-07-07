@@ -1,0 +1,22 @@
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+/* aleup theming contract: tune the document chrome to the MUI theme via --aleup-*
+ * variables (MUI theming is otherwise demonstrated through slot substitution in App.tsx). */
+:root {
+  --aleup-backdrop: #eef1f5;
+  --aleup-page-bg: #ffffff;
+  --aleup-link: #1e5aa8;
+  --aleup-caret: #1e5aa8;
+  --aleup-accent: #1e5aa8;
+  --aleup-accent-fg: #ffffff;
+  --aleup-selection: #90b4e0;
+  --aleup-page-font: "Roboto", "Helvetica", "Arial", sans-serif;
+}

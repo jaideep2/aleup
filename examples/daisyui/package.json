@@ -1,0 +1,43 @@
+{
+  "name": "aleup-example-daisyui",
+  "private": true,
+  "version": "0.0.0",
+  "description": "aleup document workbench demo, themed with daisyUI 5 (Tailwind v4) including a live theme switcher.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p tsconfig.json --noEmit && vite build",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@aleup/core": "^0.1.0",
+    "@aleup/editor": "^0.1.0",
+    "@aleup/import": "^0.1.0",
+    "@aleup/pdf": "^0.1.0",
+    "@aleup/view": "^0.1.0",
+    "@tiptap/extension-table": "^3.27.1",
+    "@tiptap/extension-table-cell": "^3.27.1",
+    "@tiptap/extension-table-header": "^3.27.1",
+    "@tiptap/extension-table-row": "^3.27.1",
+    "@tiptap/markdown": "^3.27.1",
+    "@tiptap/pm": "^3.27.1",
+    "@tiptap/react": "^3.27.1",
+    "@tiptap/starter-kit": "^3.27.1",
+    "@uppy/companion-client": "^5.1.1",
+    "@uppy/core": "^5.2.0",
+    "@uppy/xhr-upload": "^5.2.0",
+    "html2pdf.js": "^0.14.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "daisyui": "^5.0.0",
+    "tailwindcss": "^4.1.0",
+    "typescript": "~5.6.0",
+    "vite": "^6.0.0"
+  }
+}

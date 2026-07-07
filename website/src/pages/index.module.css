@@ -1,0 +1,35 @@
+.hero {
+  padding: 5rem 0 4rem;
+  text-align: center;
+}
+
+.title {
+  font-size: 3.5rem;
+  letter-spacing: -0.03em;
+}
+
+.subtitle {
+  max-width: 44rem;
+  margin: 0 auto 2rem;
+  font-size: 1.15rem;
+  color: var(--ifm-color-emphasis-700);
+}
+
+.buttons {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.card {
+  height: 100%;
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.card p {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  color: var(--ifm-color-emphasis-700);
+}

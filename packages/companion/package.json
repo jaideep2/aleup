@@ -1,0 +1,43 @@
+{
+  "name": "@aleup/companion",
+  "version": "0.1.0",
+  "description": "Config-mapped factory for the Uppy Companion standalone server (3-legged OAuth + server-side streaming for remote imports).",
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "templates"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "peerDependencies": {
+    "@uppy/companion": "^5.0.0"
+  },
+  "devDependencies": {
+    "@uppy/companion": "^5.9.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "author": "JD",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aleup/aleup.git",
+    "directory": "packages/companion"
+  }
+}

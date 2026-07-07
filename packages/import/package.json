@@ -1,0 +1,88 @@
+{
+  "name": "@aleup/import",
+  "version": "0.1.0",
+  "description": "Headless Uppy orchestration for local + cloud-provider imports: useUppyImport, useCloudDrivePicker, and per-provider registrations.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./google-drive": {
+      "types": "./dist/providers/google-drive.d.ts",
+      "default": "./dist/providers/google-drive.js"
+    },
+    "./onedrive": {
+      "types": "./dist/providers/onedrive.d.ts",
+      "default": "./dist/providers/onedrive.js"
+    },
+    "./box": {
+      "types": "./dist/providers/box.d.ts",
+      "default": "./dist/providers/box.js"
+    },
+    "./dropbox": {
+      "types": "./dist/providers/dropbox.d.ts",
+      "default": "./dist/providers/dropbox.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@aleup/core": "^0.1.0"
+  },
+  "peerDependencies": {
+    "@uppy/box": "^4.0.0",
+    "@uppy/companion-client": "^5.0.0",
+    "@uppy/core": "^5.0.0",
+    "@uppy/dropbox": "^5.0.0",
+    "@uppy/google-drive": "^5.0.0",
+    "@uppy/onedrive": "^5.0.0",
+    "@uppy/xhr-upload": "^5.0.0",
+    "react": "^18.0.0 || ^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@uppy/box": {
+      "optional": true
+    },
+    "@uppy/dropbox": {
+      "optional": true
+    },
+    "@uppy/google-drive": {
+      "optional": true
+    },
+    "@uppy/onedrive": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@uppy/box": "^4.1.0",
+    "@uppy/companion-client": "^5.1.1",
+    "@uppy/core": "^5.2.0",
+    "@uppy/dropbox": "^5.1.0",
+    "@uppy/google-drive": "^5.1.0",
+    "@uppy/onedrive": "^5.1.0",
+    "@uppy/xhr-upload": "^5.2.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "author": "JD",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aleup/aleup.git",
+    "directory": "packages/import"
+  }
+}
