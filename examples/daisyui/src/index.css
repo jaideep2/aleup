@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+@plugin "daisyui" {
+  themes: corporate --default, dark --prefersdark, cupcake;
+}
+
+/* ── aleup theming contract, variable level: map the document chrome onto daisyUI
+ * color tokens so switching data-theme re-skins the editor/viewer page live. ── */
+:root,
+[data-theme] {
+  --aleup-backdrop: var(--color-base-200);
+  --aleup-page-bg: var(--color-base-100);
+  --aleup-page-fg: var(--color-base-content);
+  --aleup-heading-fg: var(--color-base-content);
+  --aleup-h3-fg: var(--color-base-content);
+  --aleup-muted-fg: color-mix(in oklab, var(--color-base-content) 60%, transparent);
+  --aleup-link: var(--color-primary);
+  --aleup-accent: var(--color-primary);
+  --aleup-accent-fg: var(--color-primary-content);
+  --aleup-accent-hover: color-mix(in oklab, var(--color-primary) 85%, black);
+  --aleup-caret: var(--color-primary);
+  --aleup-selection: var(--color-primary);
+  --aleup-cell-selection: color-mix(in oklab, var(--color-primary) 10%, transparent);
+  --aleup-rule: var(--color-base-300);
+  --aleup-hr: var(--color-base-300);
+  --aleup-table-border: var(--color-base-300);
+  --aleup-th-bg: var(--color-base-200);
+  --aleup-code-bg: var(--color-base-200);
+  --aleup-pre-bg: var(--color-base-200);
+  --aleup-spinner: var(--color-base-content);
+  --aleup-spinner-track: var(--color-base-300);
+  --aleup-frame-bg: var(--color-base-200);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
