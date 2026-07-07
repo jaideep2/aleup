@@ -23,4 +23,4 @@ jobs:
           path-to-signatures: "signatures/cla.json"
           path-to-document: "https://github.com/aleup/aleup/blob/main/CLA.md"
           branch: "cla-signatures"
-          allowlist: "dependabot[bot],github-actions[bot]"
+          allowlist: "jaideep2,dependabot[bot],github-actions[bot]"
