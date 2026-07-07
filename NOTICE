@@ -1,0 +1,13 @@
+aleup
+Copyright 2026 JD
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Third-party dependencies retain their own copyrights and licenses; the
+aggregated attribution required by those licenses is maintained in
+THIRD_PARTY_LICENSES.md, generated and verified in CI.
+
+"aleup" is the name of this project. Use of the name to identify unmodified
+builds of this software is fine; the Apache-2.0 license does not grant
+trademark rights (see section 6) — do not use the name in a way that implies
+your product or service is provided by or endorsed by the aleup project.

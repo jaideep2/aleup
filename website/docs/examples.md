@@ -30,8 +30,8 @@ pnpm build                              # build the packages first
 pnpm --filter aleup-example-shadcn dev
 ```
 
-When the repo goes public, the built examples deploy with this site under `/demos/*` so
-you can play with each one in the browser without cloning anything.
+The built examples deploy with this site under `/demos/*` so you can play with each one
+in the browser without cloning anything.
 
 :::note
 The examples mock the server side (`DestinationPort` targets a echo endpoint, the cloud

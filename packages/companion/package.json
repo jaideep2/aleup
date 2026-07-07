@@ -2,10 +2,13 @@
   "name": "@aleup/companion",
   "version": "0.1.0",
   "description": "Config-mapped factory for the Uppy Companion standalone server (3-legged OAuth + server-side streaming for remote imports).",
-  "license": "UNLICENSED",
+  "license": "Apache-2.0",
   "type": "module",
   "sideEffects": false,
-  "files": ["dist", "templates"],
+  "files": [
+    "dist",
+    "templates"
+  ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -26,10 +29,15 @@
     "@uppy/companion": "^5.9.0"
   },
   "publishConfig": {
-    "access": "restricted",
-    "registry": "https://npm.pkg.github.com"
+    "access": "public"
   },
   "engines": {
     "node": ">=20"
+  },
+  "author": "JD",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aleup/aleup.git",
+    "directory": "packages/companion"
   }
 }

@@ -5,10 +5,6 @@ title: Getting started
 
 # Getting started
 
-> **Status:** aleup is pre-release and currently distributed from a private registry —
-> see [Private registry](/docs/private-registry). The public npm release lands with the
-> license.
-
 ## A minimal viewer
 
 ```bash
@@ -105,4 +101,5 @@ You'll also need a Companion server for the cloud providers — see
 ## DOCX + PDF
 
 See [@aleup/docx](/docs/packages/docx) (don't skip the
-[WASM asset setup](/docs/wasm-setup)) and [@aleup/pdf](/docs/packages/pdf).
+[WASM asset setup](/docs/wasm-setup)) and [@aleup/pdf](/docs/packages/pdf). For local
+development against an aleup checkout, see [Installing](/docs/installing).

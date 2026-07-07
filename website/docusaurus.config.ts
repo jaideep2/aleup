@@ -59,7 +59,7 @@ const config: Config = {
           items: [{ label: "GitHub", href: "https://github.com/aleup/aleup" }],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} JD. License pending — see repository LICENSE.`,
+      copyright: `Copyright © ${new Date().getFullYear()} JD. Apache-2.0 licensed.`,
     },
     prism: {
       theme: prismThemes.github,

@@ -2,10 +2,12 @@
   "name": "@aleup/core",
   "version": "0.1.0",
   "description": "Ports, MIME registry, and format detection for the aleup document toolkit. Zero dependencies, platform-neutral.",
-  "license": "UNLICENSED",
+  "license": "Apache-2.0",
   "type": "module",
   "sideEffects": false,
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -20,10 +22,15 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "publishConfig": {
-    "access": "restricted",
-    "registry": "https://npm.pkg.github.com"
+    "access": "public"
   },
   "engines": {
     "node": ">=20"
+  },
+  "author": "JD",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aleup/aleup.git",
+    "directory": "packages/core"
   }
 }

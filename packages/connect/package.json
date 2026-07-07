@@ -2,10 +2,12 @@
   "name": "@aleup/connect",
   "version": "0.1.0",
   "description": "OAuth + save-back write clients for Google Drive, OneDrive (Graph), Box, and Dropbox. Server-side, fetch-only, zero vendor deps.",
-  "license": "UNLICENSED",
+  "license": "Apache-2.0",
   "type": "module",
   "sideEffects": false,
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -23,10 +25,15 @@
     "@aleup/core": "^0.1.0"
   },
   "publishConfig": {
-    "access": "restricted",
-    "registry": "https://npm.pkg.github.com"
+    "access": "public"
   },
   "engines": {
     "node": ">=20"
+  },
+  "author": "JD",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aleup/aleup.git",
+    "directory": "packages/connect"
   }
 }

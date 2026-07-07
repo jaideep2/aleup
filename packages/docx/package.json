@@ -1,11 +1,13 @@
 {
   "name": "@aleup/docx",
   "version": "0.1.0",
-  "description": "DOCX ⇄ HTML/Markdown translation and high-fidelity editing round-trips over docxodus (WASM).",
-  "license": "UNLICENSED",
+  "description": "DOCX \u21c4 HTML/Markdown translation and high-fidelity editing round-trips over docxodus (WASM).",
+  "license": "Apache-2.0",
   "type": "module",
   "sideEffects": false,
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -29,10 +31,15 @@
     "docxodus": "^6.4.0"
   },
   "publishConfig": {
-    "access": "restricted",
-    "registry": "https://npm.pkg.github.com"
+    "access": "public"
   },
   "engines": {
     "node": ">=20"
+  },
+  "author": "JD",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aleup/aleup.git",
+    "directory": "packages/docx"
   }
 }

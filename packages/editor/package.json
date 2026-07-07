@@ -2,10 +2,14 @@
   "name": "@aleup/editor",
   "version": "0.1.0",
   "description": "Headless Tiptap document editor: schema preset with tables, markdown/HTML IO, toolbar-state hook, and a slot-based page component.",
-  "license": "UNLICENSED",
+  "license": "Apache-2.0",
   "type": "module",
-  "sideEffects": ["*.css"],
-  "files": ["dist"],
+  "sideEffects": [
+    "*.css"
+  ],
+  "files": [
+    "dist"
+  ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -43,10 +47,15 @@
     "@tiptap/starter-kit": "^3.27.1"
   },
   "publishConfig": {
-    "access": "restricted",
-    "registry": "https://npm.pkg.github.com"
+    "access": "public"
   },
   "engines": {
     "node": ">=20"
+  },
+  "author": "JD",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aleup/aleup.git",
+    "directory": "packages/editor"
   }
 }

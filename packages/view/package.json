@@ -2,10 +2,14 @@
   "name": "@aleup/view",
   "version": "0.1.0",
   "description": "Format-routing document viewer. Heavy renderers (DOCX, markdown) live behind opt-in subpaths.",
-  "license": "UNLICENSED",
+  "license": "Apache-2.0",
   "type": "module",
-  "sideEffects": ["*.css"],
-  "files": ["dist"],
+  "sideEffects": [
+    "*.css"
+  ],
+  "files": [
+    "dist"
+  ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -50,10 +54,15 @@
     "@aleup/editor": "^0.1.0"
   },
   "publishConfig": {
-    "access": "restricted",
-    "registry": "https://npm.pkg.github.com"
+    "access": "public"
   },
   "engines": {
     "node": ">=20"
+  },
+  "author": "JD",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aleup/aleup.git",
+    "directory": "packages/view"
   }
 }

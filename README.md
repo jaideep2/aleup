@@ -34,9 +34,13 @@ Button/Dialog/Icon), `data-aleup-*` attributes + `--aleup-*` CSS variables for
 pure-CSS theming, and an optional neutral stylesheet per package. See
 `website/docs/theming.md` and the `examples/` gallery (shadcn, MUI, daisyUI, …).
 
-## Status
+## License
 
-Pre-release. Private while licensing is finalized — see `LICENSE`.
+[Apache-2.0](./LICENSE), © 2026 JD. Third-party attribution lives in
+[THIRD_PARTY_LICENSES.md](./THIRD_PARTY_LICENSES.md) (generated, CI-verified).
+Contributions are welcome under a one-time [CLA](./CLA.md) — see
+[CONTRIBUTING.md](./CONTRIBUTING.md). The Apache-2.0 license does not grant rights to
+the "aleup" name (see `NOTICE`).
 
 ## Development
 

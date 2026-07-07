@@ -23,7 +23,7 @@ const sidebars: SidebarsConfig = {
     "ports",
     "examples",
     "wasm-setup",
-    "private-registry",
+    "installing",
     "licensing",
   ],
 };
