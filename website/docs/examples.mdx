@@ -5,17 +5,21 @@ title: Examples
 
 import DemoEmbed from "@site/src/components/DemoEmbed";
 
-# Themed examples
+# Theme it your way
 
-The same **document workbench** — editor with toolbar, format-routed preview, a cloud
-import picker, and PDF export — rebuilt in different design systems on the *identical*
-aleup hooks. They're the proof that the theming contract holds, and they build in CI as
-integration tests of the published package surface.
-
-Try them right here — switch design systems and the underlying aleup behavior is
-unchanged:
+The [live demo on the home page](/) is one build of aleup's document
+workbench — editor, format-routed preview, cloud import picker, PDF export. **This page
+is the same workbench wearing different design systems.** Switch the tab and the UI layer
+changes completely while the underlying aleup hooks stay byte-for-byte identical — that's
+the whole point of the [theming contract](/docs/theming).
 
 <DemoEmbed />
+
+Everything above is driven by the exact same `useUppyImport`, `useCloudDrivePicker`,
+`useDocToolbarState`, and `<DocumentViewer>` calls — only the buttons, dialogs, and
+tokens differ. Pick the library you already use (or bring your own); see
+[Theming](/docs/theming) for the four layers (slots, `classNames`, `data-aleup-*`
+attributes, `--aleup-*` variables).
 
 :::note These run with zero backend
 Each demo mocks the server side: the `DestinationPort` points at a no-op target and the
