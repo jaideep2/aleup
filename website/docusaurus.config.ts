@@ -9,8 +9,8 @@ const config: Config = {
   favicon: "img/favicon.ico",
 
   // GitHub Pages deploy target (enabled once the repo goes public).
-  url: "https://jaideep2.github.io",
-  baseUrl: "/aleup/",
+  url: "https://aleup.com",
+  baseUrl: "/",
   organizationName: "jaideep2",
   projectName: "aleup",
 
