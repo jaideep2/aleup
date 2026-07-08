@@ -18,7 +18,7 @@ const DEMOS: Demo[] = [
  * Each demo iframe mounts lazily on first selection and then stays mounted, so switching
  * back is instant and only the demos you actually open are downloaded.
  */
-export default function DemoEmbed(): JSX.Element {
+export default function DemoEmbed() {
   const [active, setActive] = useState(0);
   const [seen, setSeen] = useState<Set<number>>(() => new Set([0]));
   const base = useBaseUrl("/demos/");
