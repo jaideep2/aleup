@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "aleup-docs",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "aleup-website", "serve", "--port", "3055", "--no-open"],
+      "port": 3055
+    }
+  ]
+}

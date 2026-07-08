@@ -12,7 +12,7 @@ import styles from "./HeroDemo.module.css";
  * launched, the iframe stays mounted. "Theme it" points to the Examples page, where the
  * same workbench can be switched across design systems.
  */
-export default function HeroDemo(): JSX.Element {
+export default function HeroDemo() {
   const [launched, setLaunched] = useState(false);
   const demoUrl = useBaseUrl("/demos/shadcn/");
 
