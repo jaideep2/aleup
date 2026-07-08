@@ -1,6 +1,7 @@
 import Link from "@docusaurus/Link";
 import Layout from "@theme/Layout";
 import Heading from "@theme/Heading";
+import HeroDemo from "@site/src/components/HeroDemo";
 import styles from "./index.module.css";
 
 const PACKAGES: { name: string; desc: string }[] = [
@@ -32,12 +33,18 @@ export default function Home() {
               Get started
             </Link>
             <Link className="button button--secondary button--lg" to="/docs/examples">
-              See it themed
+              Theme it
             </Link>
           </div>
         </div>
       </header>
+      <section className="container margin-bottom--lg">
+        <HeroDemo />
+      </section>
       <main className="container margin-vert--lg">
+        <Heading as="h2" className={styles.sectionTitle}>
+          One core, install only what you use
+        </Heading>
         <div className="row">
           {PACKAGES.map((p) => (
             <div key={p.name} className="col col--3 margin-bottom--lg">
