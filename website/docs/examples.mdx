@@ -1,0 +1,62 @@
+---
+sidebar_position: 6
+title: Examples
+---
+
+import DemoEmbed from "@site/src/components/DemoEmbed";
+
+# Themed examples
+
+The same **document workbench** — editor with toolbar, format-routed preview, a cloud
+import picker, and PDF export — rebuilt in different design systems on the *identical*
+aleup hooks. They're the proof that the theming contract holds, and they build in CI as
+integration tests of the published package surface.
+
+Try them right here — switch design systems and the underlying aleup behavior is
+unchanged:
+
+<DemoEmbed />
+
+:::note These run with zero backend
+Each demo mocks the server side: the `DestinationPort` points at a no-op target and the
+cloud picker browses a **fake** provider (nested folders, pagination, a non-selectable
+video, a Google Doc) so you can exercise the full connect → browse → select → expand
+flow without a [Companion server](/docs/packages/companion). `@aleup/docx` (the ~16 MB
+DOCX WASM runtime) is intentionally left out of the demos.
+:::
+
+## What each demo shows
+
+- **Editor** — `<DocEditor>` seeded with a legal MSA, driven by a toolbar built in that
+  design system on `useDocToolbarState`.
+- **Preview** — `<DocumentViewer>` routing markdown, plain text, an image, and an
+  unknown type (which hits the themed `fallback` slot).
+- **Cloud picker** — a dialog over `useCloudDrivePicker`, exercising pagination and
+  breadth-first folder expansion into a flat file list.
+- **Export PDF** — `downloadElementAsPdf` over the live editor page.
+- The **daisyUI** demo adds a live theme switcher that rethemes the aleup document page
+  through `--aleup-*` CSS variables.
+
+## Available examples
+
+| Example | Design system | Status |
+|---|---|---|
+| `examples/shadcn` | shadcn/ui-style (Tailwind v4 + Radix + cva) — flagship reference | ✅ Tier 1 |
+| `examples/mui` | MUI (Material UI) | ✅ Tier 1 |
+| `examples/daisyui` | daisyUI 5 | ✅ Tier 1 |
+| `examples/mantine` | Mantine | planned |
+| `examples/heroui` | HeroUI | planned |
+| `examples/headlessui` | Headless UI | planned |
+| `examples/magicui` | Magic UI (shadcn-based) | planned |
+| `examples/aceternity` | Aceternity UI (shadcn-based) | planned |
+
+## Run one locally
+
+```bash
+pnpm install
+pnpm build                              # build the packages first
+pnpm --filter aleup-example-shadcn dev
+```
+
+The built examples deploy with this site under `/demos/*`, so the embeds above are the
+exact same apps you'd run locally.
