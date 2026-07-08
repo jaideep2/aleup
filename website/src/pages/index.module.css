@@ -21,6 +21,12 @@
   justify-content: center;
 }
 
+.sectionTitle {
+  text-align: center;
+  font-size: 1.6rem;
+  margin-bottom: 1.5rem;
+}
+
 .card {
   height: 100%;
   border: 1px solid var(--ifm-color-emphasis-200);
