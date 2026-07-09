@@ -54,6 +54,20 @@ test("contract 2: setFileState(id,{xhrUpload}) survives; addFile() drops top-lev
   uppy.destroy();
 });
 
+test("contract 4: destroy() removes provider plugins — getPlugin/providerClient go null", () => {
+  // This is the mechanism behind the "Plugin was nullish" crash: once an instance is
+  // destroyed, its provider plugins are gone and companion-client's Provider.#getPlugin
+  // (reached on every list()/login() and in the OAuth popup's message handler) throws.
+  // useUppyImport must therefore NEVER hand back a destroyed instance — its teardown is
+  // deferred so a React StrictMode re-mount can cancel it. If a future Uppy version stopped
+  // clearing plugins on destroy this assertion would flip, and the deferral could be relaxed.
+  const uppy = makeUppy();
+  expect(providerClient(uppy, "GoogleDrive")).not.toBeNull();
+  uppy.destroy();
+  expect(uppy.getPlugin("GoogleDrive")).toBeFalsy();
+  expect(providerClient(uppy, "GoogleDrive")).toBeNull();
+});
+
 test("contract 3: explicit stable ids dedup remote adds; distinct ids both land", () => {
   const uppy = makeUppy();
   const desc = (fileId: string) => ({
