@@ -62,6 +62,10 @@ export function useUppyImport(opts: UppyImportOptions) {
 
   const { companionUrl, concurrency = 8, stallMs = 120_000 } = opts;
 
+  // Tracks a teardown scheduled by an unmount, so a re-mount of the SAME instance can cancel
+  // it — see the destroy effect below for why this indirection exists (StrictMode).
+  const pendingDestroy = useRef<{ inst: Uppy; timer: ReturnType<typeof setTimeout> } | null>(null);
+
   const uppy = useMemo(() => {
     const instance = new Uppy({
       autoProceed: false,
@@ -202,20 +206,42 @@ export function useUppyImport(opts: UppyImportOptions) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [companionUrl, concurrency, stallMs]);
 
-  useEffect(
-    () => () => {
-      // If a batch is mid-flight when the host unmounts (e.g. the host navigates the
-      // moment uploads start), destroying now would abort the XHRs — let the batch
-      // finish first. Files are checked too because upload() registers the batch a
-      // microtask after files are added, and unmount can race that.
-      if (uppy.getFiles().length > 0 || Object.keys(uppy.getState().currentUploads).length > 0) {
-        uppy.once("complete", () => uppy.destroy());
-      } else {
-        uppy.destroy();
-      }
-    },
-    [uppy],
-  );
+  useEffect(() => {
+    // React StrictMode (dev) mounts every component twice: setup → cleanup → setup, on the
+    // SAME memoized instance. Destroying synchronously in the cleanup therefore tears the
+    // instance — and its headless provider plugins — down for good; the re-mount reuses the
+    // now-dead instance, so every later uppy.getPlugin() returns null. That surfaces as a
+    // "Plugin was nullish" crash the instant the Companion OAuth popup posts its token back
+    // (and is silently swallowed on the initial connection probe, which just shows the
+    // Connect screen — masking the real cause). Prod builds never double-mount, so this only
+    // bit local dev, but the lifecycle should be correct regardless.
+    //
+    // Fix: on setup, cancel any teardown pending for THIS instance (the StrictMode re-mount
+    // path). On cleanup, DEFER the teardown by a macrotask instead of running it inline — a
+    // StrictMode re-mount fires synchronously before the timer, so it cancels the teardown and
+    // the instance survives; a genuine unmount has no re-mount to cancel it, so it tears down
+    // as before. A deps-change swap (different instance) leaves the old instance's pending
+    // teardown intact, so it's still destroyed.
+    if (pendingDestroy.current?.inst === uppy) {
+      clearTimeout(pendingDestroy.current.timer);
+      pendingDestroy.current = null;
+    }
+    return () => {
+      const timer = setTimeout(() => {
+        pendingDestroy.current = null;
+        // If a batch is mid-flight when the host unmounts (e.g. the host navigates the
+        // moment uploads start), destroying now would abort the XHRs — let the batch
+        // finish first. Files are checked too because upload() registers the batch a
+        // microtask after files are added, and unmount can race that.
+        if (uppy.getFiles().length > 0 || Object.keys(uppy.getState().currentUploads).length > 0) {
+          uppy.once("complete", () => uppy.destroy());
+        } else {
+          uppy.destroy();
+        }
+      }, 0);
+      pendingDestroy.current = { inst: uppy, timer };
+    };
+  }, [uppy]);
 
   /** The headless plugin's Companion client (auth/list) for a registered provider. */
   function client(providerId: string): CompanionClient | null {
