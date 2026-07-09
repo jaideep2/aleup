@@ -28,6 +28,11 @@ jobs:
       - name: Create release PR or publish
         uses: changesets/action@v1
         with:
+          # `changeset version` bumps package.json versions (incl. internal semver ranges
+          # like the example apps' "@aleup/import": "^0.1.x") but does NOT touch the lockfile.
+          # Refresh it in the same step so the auto-generated "Version Packages" PR stays
+          # installable — otherwise CI's `pnpm install --frozen-lockfile` rejects it.
+          version: pnpm run version-packages
           publish: pnpm changeset publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
