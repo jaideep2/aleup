@@ -63,8 +63,8 @@ importers:
         specifier: ^0.1.0
         version: link:../../packages/editor
       '@aleup/import':
-        specifier: ^0.1.1
-        version: 0.1.1(@uppy/box@4.1.0(@uppy/core@5.2.0))(@uppy/companion-client@5.1.1(@uppy/core@5.2.0))(@uppy/core@5.2.0)(@uppy/dropbox@5.1.0(@uppy/core@5.2.0))(@uppy/google-drive@5.1.0(@uppy/core@5.2.0))(@uppy/onedrive@5.1.0(@uppy/core@5.2.0))(@uppy/xhr-upload@5.2.0(@uppy/core@5.2.0))(react@19.2.7)
+        specifier: ^0.2.0
+        version: link:../../packages/import
       '@aleup/pdf':
         specifier: ^0.1.0
         version: link:../../packages/pdf
@@ -148,8 +148,8 @@ importers:
         specifier: ^0.1.0
         version: link:../../packages/editor
       '@aleup/import':
-        specifier: ^0.1.1
-        version: 0.1.1(@uppy/box@4.1.0(@uppy/core@5.2.0))(@uppy/companion-client@5.1.1(@uppy/core@5.2.0))(@uppy/core@5.2.0)(@uppy/dropbox@5.1.0(@uppy/core@5.2.0))(@uppy/google-drive@5.1.0(@uppy/core@5.2.0))(@uppy/onedrive@5.1.0(@uppy/core@5.2.0))(@uppy/xhr-upload@5.2.0(@uppy/core@5.2.0))(react@19.2.7)
+        specifier: ^0.2.0
+        version: link:../../packages/import
       '@aleup/pdf':
         specifier: ^0.1.0
         version: link:../../packages/pdf
@@ -236,8 +236,8 @@ importers:
         specifier: ^0.1.0
         version: link:../../packages/editor
       '@aleup/import':
-        specifier: ^0.1.1
-        version: 0.1.1(@uppy/box@4.1.0(@uppy/core@5.2.0))(@uppy/companion-client@5.1.1(@uppy/core@5.2.0))(@uppy/core@5.2.0)(@uppy/dropbox@5.1.0(@uppy/core@5.2.0))(@uppy/google-drive@5.1.0(@uppy/core@5.2.0))(@uppy/onedrive@5.1.0(@uppy/core@5.2.0))(@uppy/xhr-upload@5.2.0(@uppy/core@5.2.0))(react@19.2.7)
+        specifier: ^0.2.0
+        version: link:../../packages/import
       '@aleup/pdf':
         specifier: ^0.1.0
         version: link:../../packages/pdf
@@ -481,32 +481,6 @@ importers:
         version: 5.6.3
 
 packages:
-
-  '@aleup/core@0.1.0':
-    resolution: {integrity: sha512-g4R+VI45FDvN+HOi7ex3f6Xq43ICp4QvxYlsLRlPoON2po8b5evh8TMf2F/QclSGJ/m2m6bw0VKZvsgUJeDtHw==}
-    engines: {node: '>=20'}
-
-  '@aleup/import@0.1.1':
-    resolution: {integrity: sha512-bHUIIJ9VI7R8LjWdIPKtUMURctxN8zYrMfecjIBBYGpN/2AFIjFpRPXU/+PnuKKS9ylelSXErbfMgpPNbGox9A==}
-    engines: {node: '>=20'}
-    peerDependencies:
-      '@uppy/box': ^4.0.0
-      '@uppy/companion-client': ^5.0.0
-      '@uppy/core': ^5.0.0
-      '@uppy/dropbox': ^5.0.0
-      '@uppy/google-drive': ^5.0.0
-      '@uppy/onedrive': ^5.0.0
-      '@uppy/xhr-upload': ^5.0.0
-      react: ^18.0.0 || ^19.0.0
-    peerDependenciesMeta:
-      '@uppy/box':
-        optional: true
-      '@uppy/dropbox':
-        optional: true
-      '@uppy/google-drive':
-        optional: true
-      '@uppy/onedrive':
-        optional: true
 
   '@algolia/abtesting@1.21.1':
     resolution: {integrity: sha512-Wia5/mNTfiU0PIUN25UMfAGGdASkkwuCS9nBAdmhqrNPY/ff7U/6MgBVdwFDPsa3sA1msutPtO50gvOzx6MOXA==}
@@ -8542,21 +8516,6 @@ packages:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
 
 snapshots:
-
-  '@aleup/core@0.1.0': {}
-
-  '@aleup/import@0.1.1(@uppy/box@4.1.0(@uppy/core@5.2.0))(@uppy/companion-client@5.1.1(@uppy/core@5.2.0))(@uppy/core@5.2.0)(@uppy/dropbox@5.1.0(@uppy/core@5.2.0))(@uppy/google-drive@5.1.0(@uppy/core@5.2.0))(@uppy/onedrive@5.1.0(@uppy/core@5.2.0))(@uppy/xhr-upload@5.2.0(@uppy/core@5.2.0))(react@19.2.7)':
-    dependencies:
-      '@aleup/core': 0.1.0
-      '@uppy/companion-client': 5.1.1(@uppy/core@5.2.0)
-      '@uppy/core': 5.2.0
-      '@uppy/xhr-upload': 5.2.0(@uppy/core@5.2.0)
-      react: 19.2.7
-    optionalDependencies:
-      '@uppy/box': 4.1.0(@uppy/core@5.2.0)
-      '@uppy/dropbox': 5.1.0(@uppy/core@5.2.0)
-      '@uppy/google-drive': 5.1.0(@uppy/core@5.2.0)
-      '@uppy/onedrive': 5.1.0(@uppy/core@5.2.0)
 
   '@algolia/abtesting@1.21.1':
     dependencies:
