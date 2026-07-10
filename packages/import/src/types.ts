@@ -20,12 +20,26 @@ export type ImportProgress = {
   failed: number;
 } | null;
 
+/** A file recovered from a prior session by Golden Retriever. */
+export interface RestoredFile {
+  id: string;
+  name: string;
+  size?: number | null;
+}
+
 export interface ImportCallbacks {
   onProgress?: (state: ImportProgress) => void;
   onComplete?: (summary: { ok: number; failed: number }) => void | Promise<void>;
   onError?: (message: string) => void;
   /** Fires per successful upload with the destination route's response body. */
   onFileUploaded?: (file: { name: string; response: unknown }) => void;
+  /**
+   * Cross-refresh resume (PLAN_UPLOAD Phase 2, s3-multipart mode). Fires once after a page reload if
+   * Golden Retriever recovered an in-flight batch. `autoResumed` files had their bytes/part-state
+   * restored and resume automatically; `needsReselection` files (large local files whose blob
+   * exceeded the IndexedDB cap) can't be silently re-read — the host must ask the user to re-pick them.
+   */
+  onRestored?: (info: { autoResumed: RestoredFile[]; needsReselection: RestoredFile[] }) => void;
 }
 
 /**

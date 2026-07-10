@@ -1,28 +1,40 @@
 "use client";
 
-// One Uppy instance per "add documents" surface — Uppy owns ALL upload networking,
-// local and remote:
+// One or two Uppy instances per "add documents" surface. Uppy owns ALL upload networking:
 //
-//   Local files   → XHRUpload straight to the host's DestinationPort.localUploadTarget()
-//                   (browser request, typically session-cookie authed).
-//   Remote files  → Uppy Companion streams the provider file server-side and
-//                   multipart-POSTs it to DestinationPort.remoteUploadTarget() —
-//                   typically a token-authenticated route, since Companion can't send
-//                   the browser's session cookie. Bytes never touch the browser.
+//   Remote files  → XHRUpload; Uppy Companion streams the provider file server-side and
+//                   multipart-POSTs it to DestinationPort.remoteUploadTarget() (token authed —
+//                   Companion can't send the browser's session cookie). Bytes never touch the browser.
+//   Local files   → depends on DestinationPort.localMode:
+//                     "xhr" (default)   → XHRUpload straight to localUploadTarget() (today's path).
+//                     "s3-multipart"    → @uppy/aws-s3 uploads RESUMABLY straight to object storage
+//                                         via DestinationPort.s3 (PLAN_UPLOAD Phase 2), then the host
+//                                         finalizes in s3.onObjectUploaded.
 //
-// Provider plugins are installed HEADLESS (no target): they exist to own the Companion
-// OAuth popup, token storage, and request-client registration; the browsing UI is the
-// host's (build it on useCloudDrivePicker).
+// Uppy allows only ONE uploader plugin per instance, so S3 local uploads run on a SECOND instance
+// (`localUppy`); the remote/provider instance (`remoteUppy`) is unchanged. In "xhr" mode there is no
+// second instance — local files ride remoteUppy exactly as before, so that path is untouched.
+//
+// Provider plugins are installed HEADLESS on remoteUppy (no target): they own the Companion OAuth
+// popup, token storage, and request-client registration; the browsing UI is the host's.
 
 import { useEffect, useMemo, useRef } from "react";
 import Uppy from "@uppy/core";
 import XHRUpload from "@uppy/xhr-upload";
-import { nativeGoogleExportTarget, type DestinationPort, type MetaSupplier } from "@aleup/core";
+import AwsS3 from "@uppy/aws-s3";
+import GoldenRetriever from "@uppy/golden-retriever";
+import {
+  nativeGoogleExportTarget,
+  type DestinationPort,
+  type MetaSupplier,
+  type S3MultipartApi,
+  type UppyFileLike,
+} from "@aleup/core";
 import { providerClient, type CompanionClient } from "./client.js";
 import type { CompanionItem, ImportCallbacks, ProviderRegistration } from "./types.js";
 
 export interface UppyImportOptions extends ImportCallbacks {
-  /** Where bytes go — the host's policy (signed-token route, S3 proxy, …). */
+  /** Where bytes go — the host's policy (signed-token route, S3 multipart, …). */
   destination: DestinationPort;
   /** The Companion server origin (e.g. https://companion.example.com). */
   companionUrl: string;
@@ -55,222 +67,299 @@ function defaultTransform(item: CompanionItem): { name: string; type: string } {
   };
 }
 
+type OptsRef = React.RefObject<UppyImportOptions>;
+
+/**
+ * Wire one Uppy instance's progress accounting + (optionally) the stall watchdog, reporting through
+ * the host callbacks. Each call keeps its OWN counters, so two instances don't share state. A
+ * `finalize` hook (S3 local mode) runs after a file's bytes land and its return becomes the
+ * onFileUploaded response; a throw there marks the file failed.
+ */
+function attachProgress(
+  instance: Uppy,
+  optsRef: OptsRef,
+  cfg: { watchdog: boolean; stallMs: number; finalize?: (file: UppyFileLike, response: unknown) => Promise<unknown> },
+): void {
+  let total = 0;
+  let done = 0;
+  let failed = 0;
+  let failedNames: string[] = [];
+  const report = () => optsRef.current.onProgress?.({ phase: "uploading", total, done, failed });
+
+  // Stall watchdog (remote imports only): a file that STARTED transferring but then goes silent for
+  // stallMs is abandoned + counted failed. Only files that produced real bytes are watched.
+  const lastActivity = new Map<string, { name: string; at: number }>();
+  let watchdog: ReturnType<typeof setInterval> | null = null;
+  const stopWatchdog = () => {
+    if (watchdog) {
+      clearInterval(watchdog);
+      watchdog = null;
+    }
+  };
+  const runWatchdog = () => {
+    const now = Date.now();
+    for (const [id, entry] of lastActivity) {
+      if (now - entry.at <= cfg.stallMs) continue;
+      lastActivity.delete(id);
+      done++;
+      failed++;
+      failedNames.push(entry.name);
+      report();
+      instance.removeFile(id); // aborts the in-flight transfer + retry loop
+    }
+  };
+
+  instance.on("upload", (_uploadId, files) => {
+    total += files.length;
+    if (cfg.watchdog) watchdog ??= setInterval(runWatchdog, 10_000);
+    report();
+  });
+  instance.on("upload-progress", (file, progress) => {
+    if (cfg.watchdog && file && (progress?.bytesUploaded ?? 0) > 0) {
+      lastActivity.set(file.id, { name: file.name ?? "file", at: Date.now() });
+    }
+  });
+  instance.on("upload-success", (file, response) => {
+    if (file) lastActivity.delete(file.id);
+    done++;
+    report();
+    const rawBody = (response as { body?: unknown })?.body;
+    const emit = (body: unknown) => {
+      optsRef.current.onFileUploaded?.({ name: file?.name ?? "", response: body });
+      optsRef.current.destination.onFileUploaded?.({ id: file?.id, name: file?.name ?? "", response: body });
+    };
+    if (!cfg.finalize || !file) {
+      emit(rawBody);
+      return;
+    }
+    // S3 local mode: run the host's finalize seam, then emit its result. A finalize failure counts
+    // the file as failed and skips onFileUploaded (no Document was created).
+    void cfg
+      .finalize(file as unknown as UppyFileLike, response)
+      .then((body) => emit(body))
+      .catch((err) => {
+        failed++;
+        if (file.name) failedNames.push(file.name);
+        report();
+        optsRef.current.onError?.(err instanceof Error ? err.message : "Finalizing an upload failed.");
+      });
+  });
+  instance.on("upload-error", (file, _err, response) => {
+    if (file) lastActivity.delete(file.id);
+    done++;
+    failed++;
+    if (file?.name) failedNames.push(file.name);
+    report();
+    if (response?.status === 415) {
+      optsRef.current.onError?.("Some files were skipped because their type isn't allowed.");
+    }
+  });
+  instance.on("complete", () => {
+    const summary = { ok: done - failed, failed };
+    if (failedNames.length) {
+      const names = failedNames.slice(0, 3).join(", ");
+      const more = failedNames.length > 3 ? ` and ${failedNames.length - 3} more` : "";
+      optsRef.current.onError?.(
+        `${failedNames.length} file(s) failed to import: ${names}${more}. ` +
+          `These are usually Drive shortcuts pointing at something that can't be downloaded — ` +
+          `try importing the original file or folder instead.`,
+      );
+    }
+    total = 0;
+    done = 0;
+    failed = 0;
+    failedNames = [];
+    lastActivity.clear();
+    stopWatchdog();
+    void (async () => {
+      await optsRef.current.onComplete?.(summary);
+      optsRef.current.onProgress?.(null);
+    })();
+    instance.clear(); // fresh slate for the next batch
+  });
+}
+
+/**
+ * @uppy/aws-s3 plugin options wired to the host's S3MultipartApi. `s3Meta` records each file's
+ * {key, uploadId} so the finalize seam (in attachProgress) can reference them at upload-success.
+ */
+function s3PluginOptions(
+  s3: () => S3MultipartApi,
+  s3Meta: Map<string, { key: string; uploadId?: string }>,
+) {
+  const asFile = (f: unknown) => f as unknown as UppyFileLike;
+  return {
+    // Presigned single PUT for small files. We stash the key (Uppy ignores extra return fields).
+    getUploadParameters: async (file: unknown) => {
+      const r = await s3().getUploadParameters(asFile(file));
+      if (r.key) s3Meta.set((file as { id: string }).id, { key: r.key });
+      return { method: r.method, url: r.url, fields: r.fields ?? {}, headers: r.headers };
+    },
+    createMultipartUpload: async (file: unknown) => {
+      const r = await s3().createMultipartUpload(asFile(file));
+      s3Meta.set((file as { id: string }).id, { key: r.key, uploadId: r.uploadId });
+      return { uploadId: r.uploadId, key: r.key };
+    },
+    signPart: (file: unknown, o: { uploadId: string; key: string; partNumber: number; signal?: AbortSignal }) =>
+      s3().signPart(asFile(file), o),
+    listParts: (file: unknown, o: { uploadId: string; key: string; signal?: AbortSignal }) =>
+      s3().listParts(asFile(file), o),
+    completeMultipartUpload: (
+      file: unknown,
+      o: { uploadId: string; key: string; parts: { PartNumber: number; ETag: string }[]; signal?: AbortSignal },
+    ) => s3().completeMultipartUpload(asFile(file), o),
+    abortMultipartUpload: (file: unknown, o: { uploadId: string; key: string; signal?: AbortSignal }) =>
+      s3().abortMultipartUpload(asFile(file), o),
+    ...(() => {
+      const su = s3().shouldUseMultipart;
+      return su ? { shouldUseMultipart: (file: unknown) => su(asFile(file)) } : {};
+    })(),
+  };
+}
+
 export function useUppyImport(opts: UppyImportOptions) {
   // Keep callbacks/options fresh without rebuilding the Uppy instance.
   const optsRef = useRef(opts);
   optsRef.current = opts;
 
   const { companionUrl, concurrency = 8, stallMs = 120_000 } = opts;
+  const s3Mode = opts.destination.localMode === "s3-multipart";
 
-  // Tracks a teardown scheduled by an unmount, so a re-mount of the SAME instance can cancel
-  // it — see the destroy effect below for why this indirection exists (StrictMode).
-  const pendingDestroy = useRef<{ inst: Uppy; timer: ReturnType<typeof setTimeout> } | null>(null);
+  // Track teardown scheduled by an unmount, so a StrictMode re-mount of the SAME instances can cancel
+  // it (see the destroy effect). Holds both instances.
+  const pendingDestroy = useRef<{ instances: Uppy[]; timer: ReturnType<typeof setTimeout> } | null>(null);
 
-  const uppy = useMemo(() => {
-    const instance = new Uppy({
+  const { remoteUppy, localUppy } = useMemo(() => {
+    // ── Remote/provider instance (XHRUpload + Companion). Also serves local files in "xhr" mode. ──
+    const remote = new Uppy({
       autoProceed: false,
       allowMultipleUploadBatches: true,
-      // The host's server enforces the real allow-list; keep client restrictions off so
-      // the picker's own filtering is the single client-side gate.
       restrictions: {},
     });
-    instance.use(XHRUpload, {
-      // Every file carries a per-file endpoint override (see uploadLocalFiles /
-      // importRemoteFiles); this instance-level one is only the required fallback — it
-      // 404s loudly if a bug ever lets a file through without its override.
-      endpoint: "/__aleup-missing-endpoint__",
+    remote.use(XHRUpload, {
+      endpoint: "/__aleup-missing-endpoint__", // per-file override set at upload time; loud 404 otherwise
       fieldName: "file",
       formData: true,
       limit: concurrency,
-      // Forwarded as form fields: host meta keys (e.g. tags) + type (companion posts
-      // carry no content-type on the file part; destination routes prefer this field)
-      // + name. `name` matters for REMOTE imports: Companion builds its multipart file
-      // part on the server and names it from metadata.name — without it forwarded,
-      // every imported file lands as "uppy-file-<uuid>". (Local uploads set the
-      // filename directly on the form part, so this is belt-and-suspenders for them.)
-      allowedMetaFields: [
-        ...new Set([...Object.keys(optsRef.current.meta?.() ?? {}), "type", "name"]),
-      ],
+      allowedMetaFields: [...new Set([...Object.keys(optsRef.current.meta?.() ?? {}), "type", "name"])],
     });
-    // No `target` → headless: provider auth/list/request-client only, UI is the host's.
-    // Loosely typed on purpose: registrations carry the plugin class as `unknown` so
-    // vendor plugin types never leak into aleup's public API.
-    const use = instance.use.bind(instance) as (plugin: unknown, opts?: unknown) => unknown;
+    const use = remote.use.bind(remote) as (plugin: unknown, opts?: unknown) => unknown;
     for (const reg of optsRef.current.providers ?? []) {
       use(reg.plugin, { id: reg.pluginId, companionUrl });
     }
+    attachProgress(remote, optsRef, { watchdog: true, stallMs });
 
-    // Progress accounting — one batch at a time.
-    let total = 0;
-    let done = 0;
-    let failed = 0;
-    let failedNames: string[] = [];
-    const report = () =>
-      optsRef.current.onProgress?.({ phase: "uploading", total, done, failed });
-
-    // Stall watchdog. A remote file that STARTED transferring but then goes silent for
-    // stallMs (e.g. its source became unreadable mid-stream and companion-client is
-    // grinding through its retry/backoff loop) is abandoned and counted as failed.
-    //
-    // Crucially, only files that have ALREADY produced real bytes are watched — a file
-    // still queued behind the concurrency limit shows no progress yet, and must never be
-    // killed for that. stallMs is generous (files can pause under provider throttling)
-    // and stays well under companion-client's own 5-min socket-activity timeout, which
-    // remains the backstop for never-started files.
-    const lastActivity = new Map<string, { name: string; at: number }>();
-    let watchdog: ReturnType<typeof setInterval> | null = null;
-    const stopWatchdog = () => {
-      if (watchdog) {
-        clearInterval(watchdog);
-        watchdog = null;
-      }
-    };
-    const runWatchdog = () => {
-      const now = Date.now();
-      for (const [id, entry] of lastActivity) {
-        if (now - entry.at <= stallMs) continue;
-        lastActivity.delete(id);
-        done++;
-        failed++;
-        failedNames.push(entry.name);
-        report();
-        // Aborts the in-flight transfer + retry loop (XHRUpload listens for removal).
-        instance.removeFile(id);
-      }
-    };
-
-    instance.on("upload", (_uploadId, files) => {
-      total += files.length;
-      // Runs for the whole batch; only acts on files that have started transferring (below).
-      watchdog ??= setInterval(runWatchdog, 10_000);
-      report();
-    });
-    instance.on("upload-progress", (file, progress) => {
-      // A file joins the stall watch on its FIRST real bytes and refreshes on every chunk.
-      // Zero-byte progress (emitted during retry cycles) is ignored so it neither revives
-      // a dead source nor enrols a file that hasn't genuinely started.
-      if (file && (progress?.bytesUploaded ?? 0) > 0) {
-        lastActivity.set(file.id, { name: file.name ?? "file", at: Date.now() });
-      }
-    });
-    instance.on("upload-success", (file, response) => {
-      if (file) lastActivity.delete(file.id);
-      done++;
-      report();
-      const body = response?.body as unknown;
-      optsRef.current.onFileUploaded?.({ name: file?.name ?? "", response: body });
-      optsRef.current.destination.onFileUploaded?.({
-        id: file?.id,
-        name: file?.name ?? "",
-        response: body,
+    // ── Local S3 instance (only in s3-multipart mode). No watchdog: local files have no "unreadable
+    //    remote source" failure mode, and large multipart uploads legitimately run long. ──
+    let local = remote;
+    if (s3Mode) {
+      const s3Meta = new Map<string, { key: string; uploadId?: string }>();
+      local = new Uppy({ autoProceed: false, allowMultipleUploadBatches: true, restrictions: {} });
+      const s3 = () => {
+        const api = optsRef.current.destination.s3;
+        if (!api) throw new Error("localMode is 's3-multipart' but destination.s3 was not provided");
+        return api;
+      };
+      // Loosely typed on purpose (as with provider plugins) so the vendor plugin's strict generic
+      // option type never leaks into aleup's API. Named mountLocal (not use*) so eslint's
+      // rules-of-hooks doesn't mistake these plugin installs for React Hook calls.
+      const mountLocal = local.use.bind(local) as (plugin: unknown, opts?: unknown) => unknown;
+      mountLocal(AwsS3, s3PluginOptions(s3, s3Meta));
+      // Cross-refresh resume: persist the batch manifest + multipart part state (+ small blobs) to
+      // IndexedDB. On reload, restored non-ghost files auto-resume (AwsS3 reconciles via listParts);
+      // ghost files (large local blobs over the IndexedDB cap) can't be re-read and need reselection.
+      mountLocal(GoldenRetriever, { serviceWorker: false });
+      local.on("restored", () => {
+        const autoResumed: { id: string; name: string; size?: number | null }[] = [];
+        const needsReselection: { id: string; name: string; size?: number | null }[] = [];
+        for (const f of local.getFiles()) {
+          const entry = { id: f.id, name: f.name ?? "file", size: f.size };
+          if ((f as { isGhost?: boolean }).isGhost) needsReselection.push(entry);
+          else autoResumed.push(entry);
+        }
+        optsRef.current.onRestored?.({ autoResumed, needsReselection });
+        if (autoResumed.length) void local.upload(); // resume what we can
       });
-    });
-    instance.on("upload-error", (file, _err, response) => {
-      if (file) lastActivity.delete(file.id);
-      done++;
-      failed++;
-      if (file?.name) failedNames.push(file.name);
-      report();
-      if (response?.status === 415) {
-        optsRef.current.onError?.("Some files were skipped because their type isn't allowed.");
-      }
-    });
-    instance.on("complete", () => {
-      const summary = { ok: done - failed, failed };
-      // Name the casualties. Broken Drive shortcuts are the most common cause, so say so.
-      if (failedNames.length) {
-        const names = failedNames.slice(0, 3).join(", ");
-        const more = failedNames.length > 3 ? ` and ${failedNames.length - 3} more` : "";
-        optsRef.current.onError?.(
-          `${failedNames.length} file(s) failed to import: ${names}${more}. ` +
-            `These are usually Drive shortcuts pointing at something that can't be downloaded — ` +
-            `try importing the original file or folder instead.`,
-        );
-      }
-      total = 0;
-      done = 0;
-      failed = 0;
-      failedNames = [];
-      lastActivity.clear();
-      stopWatchdog();
-      void (async () => {
-        await optsRef.current.onComplete?.(summary);
-        optsRef.current.onProgress?.(null);
-      })();
-      instance.clear(); // fresh slate for the next batch
-    });
-    return instance;
-    // One stable instance per surface; endpoints are resolved per upload via the
-    // DestinationPort, never baked in — so late-bound destinations (host creates the
-    // container after files were chosen) need no rebuild.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [companionUrl, concurrency, stallMs]);
+      attachProgress(local, optsRef, {
+        watchdog: false,
+        stallMs,
+        finalize: async (file) => {
+          const meta = s3Meta.get(file.id);
+          s3Meta.delete(file.id);
+          return s3().onObjectUploaded(file, { key: meta?.key ?? "", uploadId: meta?.uploadId });
+        },
+      });
+    }
+    return { remoteUppy: remote, localUppy: local };
+    // Endpoints/keys are resolved per upload via the DestinationPort, never baked in.
+  }, [companionUrl, concurrency, stallMs, s3Mode]);
 
   useEffect(() => {
-    // React StrictMode (dev) mounts every component twice: setup → cleanup → setup, on the
-    // SAME memoized instance. Destroying synchronously in the cleanup therefore tears the
-    // instance — and its headless provider plugins — down for good; the re-mount reuses the
-    // now-dead instance, so every later uppy.getPlugin() returns null. That surfaces as a
-    // "Plugin was nullish" crash the instant the Companion OAuth popup posts its token back
-    // (and is silently swallowed on the initial connection probe, which just shows the
-    // Connect screen — masking the real cause). Prod builds never double-mount, so this only
-    // bit local dev, but the lifecycle should be correct regardless.
-    //
-    // Fix: on setup, cancel any teardown pending for THIS instance (the StrictMode re-mount
-    // path). On cleanup, DEFER the teardown by a macrotask instead of running it inline — a
-    // StrictMode re-mount fires synchronously before the timer, so it cancels the teardown and
-    // the instance survives; a genuine unmount has no re-mount to cancel it, so it tears down
-    // as before. A deps-change swap (different instance) leaves the old instance's pending
-    // teardown intact, so it's still destroyed.
-    if (pendingDestroy.current?.inst === uppy) {
+    // StrictMode-safe teardown: defer destroy by a macrotask so a synchronous re-mount cancels it;
+    // a genuine unmount has no re-mount, so it tears down. Handles both instances (localUppy may be
+    // the same object as remoteUppy in xhr mode — dedupe so we don't destroy twice).
+    const instances = remoteUppy === localUppy ? [remoteUppy] : [remoteUppy, localUppy];
+    if (pendingDestroy.current && pendingDestroy.current.instances[0] === remoteUppy) {
       clearTimeout(pendingDestroy.current.timer);
       pendingDestroy.current = null;
     }
     return () => {
       const timer = setTimeout(() => {
         pendingDestroy.current = null;
-        // If a batch is mid-flight when the host unmounts (e.g. the host navigates the
-        // moment uploads start), destroying now would abort the XHRs — let the batch
-        // finish first. Files are checked too because upload() registers the batch a
-        // microtask after files are added, and unmount can race that.
-        if (uppy.getFiles().length > 0 || Object.keys(uppy.getState().currentUploads).length > 0) {
-          uppy.once("complete", () => uppy.destroy());
-        } else {
-          uppy.destroy();
+        for (const inst of instances) {
+          if (inst.getFiles().length > 0 || Object.keys(inst.getState().currentUploads).length > 0) {
+            inst.once("complete", () => inst.destroy());
+          } else {
+            inst.destroy();
+          }
         }
       }, 0);
-      pendingDestroy.current = { inst: uppy, timer };
+      pendingDestroy.current = { instances, timer };
     };
-  }, [uppy]);
+  }, [remoteUppy, localUppy]);
 
-  /** The headless plugin's Companion client (auth/list) for a registered provider. */
+  /** The headless plugin's Companion client (auth/list) for a registered provider (on remoteUppy). */
   function client(providerId: string): CompanionClient | null {
     const reg = (optsRef.current.providers ?? []).find((c) => c.id === providerId);
     if (!reg) return null;
-    return providerClient(uppy, reg.pluginId);
+    return providerClient(remoteUppy, reg.pluginId);
   }
 
   /**
-   * Add local File objects and start the upload (browser → host's local target).
-   * Pass `start: false` to only queue them — combine with remote adds into one batch
-   * via startUpload().
+   * Add local File objects and start the upload. In s3-multipart mode they go to the S3 instance
+   * (resumable, direct-to-storage); otherwise they XHR-POST to the host's local target (today's path).
    */
   async function uploadLocalFiles(files: File[], o?: { start?: boolean }): Promise<void> {
     if (!files.length) return;
+
+    if (s3Mode) {
+      for (const file of files) {
+        try {
+          localUppy.addFile({
+            name: file.name,
+            type: file.type,
+            data: file,
+            meta: { ...optsRef.current.meta?.() },
+          } as never);
+        } catch {
+          /* duplicate in batch — skip */
+        }
+      }
+      if (o?.start !== false) void localUppy.upload();
+      return;
+    }
+
     const target = await optsRef.current.destination.localUploadTarget();
     for (const file of files) {
       try {
-        const id = uppy.addFile({
+        const id = remoteUppy.addFile({
           name: file.name,
           type: file.type,
           data: file,
           meta: { ...optsRef.current.meta?.() },
         } as never);
-        // Per-file endpoint so late-bound destinations target the right container. Must
-        // be applied via setFileState: Uppy core's addFile() drops unknown top-level keys
-        // (incl. `xhrUpload`), so passing it to addFile silently loses it and XHRUpload
-        // falls back to the instance endpoint. (Pinned by a contract test.)
-        uppy.setFileState(id, {
+        // Per-file endpoint (Uppy core drops unknown top-level addFile keys; must use setFileState).
+        remoteUppy.setFileState(id, {
           xhrUpload: {
             endpoint: target.endpoint,
             ...(target.headers ? { headers: target.headers } : {}),
@@ -280,12 +369,12 @@ export function useUppyImport(opts: UppyImportOptions) {
         /* duplicate in batch — skip */
       }
     }
-    if (o?.start !== false) void uppy.upload();
+    if (o?.start !== false) void remoteUppy.upload();
   }
 
   /**
-   * Add remote provider files and start the import. Companion streams each file
-   * server-side into the host's remote target.
+   * Add remote provider files and start the import. Companion streams each file server-side into the
+   * host's remote target. Always on remoteUppy (XHRUpload), regardless of localMode.
    */
   async function importRemoteFiles(
     providerId: string,
@@ -293,21 +382,11 @@ export function useUppyImport(opts: UppyImportOptions) {
     o?: { start?: boolean },
   ): Promise<void> {
     if (!items.length) return;
-    // Flip to an indeterminate "importing" state immediately — before the host's token
-    // dance and Companion's first upload event — so progress UI appears the moment the
-    // user confirms the selection, instead of sitting blank for the seconds/minutes until
-    // bytes start flowing. The `upload` event overwrites this with real progress.
-    optsRef.current.onProgress?.({
-      phase: "importing",
-      total: items.length,
-      done: 0,
-      failed: 0,
-    });
+    optsRef.current.onProgress?.({ phase: "importing", total: items.length, done: 0, failed: 0 });
     try {
       const provider = client(providerId);
       if (!provider) throw new Error(`Provider ${providerId} not initialized`);
 
-      // The host's token dance happens here (signed upload token, per-batch).
       const target = await optsRef.current.destination.remoteUploadTarget();
       const transform = optsRef.current.transformRemoteItem ?? defaultTransform;
 
@@ -315,12 +394,7 @@ export function useUppyImport(opts: UppyImportOptions) {
       for (const item of items) {
         const { name, type } = transform(item);
         try {
-          const id = uppy.addFile({
-            // Drive/Box/Dropbox are "stable-id" providers: Uppy dedups them by the file's
-            // OWN `id` rather than a generated name+size hash (see getSafeFileId). The
-            // picker builds descriptors by hand, so we MUST supply a unique id — otherwise
-            // every file gets id `undefined`, collides as a duplicate, and only the first
-            // one is ever added (the rest throw noDuplicates and are swallowed below).
+          const id = remoteUppy.addFile({
             id: `${providerId}:${item.id}`,
             source: "AleupCloudPicker",
             name,
@@ -338,11 +412,7 @@ export function useUppyImport(opts: UppyImportOptions) {
               requestClientId: provider.provider,
             },
           } as never);
-          // Per-file override: remote uploads land on the host's remote target (Companion
-          // can't send the session cookie, hence typically token headers). Applied via
-          // setFileState because addFile() drops the `xhrUpload` key — without this
-          // Companion receives the fallback endpoint and rejects it.
-          uppy.setFileState(id, {
+          remoteUppy.setFileState(id, {
             xhrUpload: {
               endpoint: target.endpoint,
               ...(target.headers ? { headers: target.headers } : {}),
@@ -353,25 +423,23 @@ export function useUppyImport(opts: UppyImportOptions) {
           /* duplicate in batch — skip */
         }
       }
-      // Nothing actually queued (whole batch was duplicates) — no upload/complete event
-      // will fire to clear it, so drop the "importing" state we optimistically showed.
       if (added === 0) {
         optsRef.current.onProgress?.(null);
         return;
       }
-      if (o?.start !== false) void uppy.upload();
+      if (o?.start !== false) void remoteUppy.upload();
     } catch (err) {
-      // Setup failed (bad token, no provider) before any upload started — the "complete"
-      // event won't fire to clear progress, so reset it here, then surface the error.
       optsRef.current.onProgress?.(null);
       throw err;
     }
   }
 
-  /** Start uploading everything queued (for hosts batching local + remote adds). */
+  /** Start uploading everything queued across both instances (for hosts batching local + remote). */
   function startUpload() {
-    return uppy.upload();
+    const jobs = [remoteUppy.upload()];
+    if (remoteUppy !== localUppy) jobs.push(localUppy.upload());
+    return Promise.all(jobs);
   }
 
-  return { uppy, providerClient: client, uploadLocalFiles, importRemoteFiles, startUpload };
+  return { uppy: remoteUppy, providerClient: client, uploadLocalFiles, importRemoteFiles, startUpload };
 }
