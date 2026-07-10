@@ -261,13 +261,14 @@ export function useUppyImport(opts: UppyImportOptions) {
         return api;
       };
       // Loosely typed on purpose (as with provider plugins) so the vendor plugin's strict generic
-      // option type never leaks into aleup's API.
-      const useLocal = local.use.bind(local) as (plugin: unknown, opts?: unknown) => unknown;
-      useLocal(AwsS3, s3PluginOptions(s3, s3Meta));
+      // option type never leaks into aleup's API. Named mountLocal (not use*) so eslint's
+      // rules-of-hooks doesn't mistake these plugin installs for React Hook calls.
+      const mountLocal = local.use.bind(local) as (plugin: unknown, opts?: unknown) => unknown;
+      mountLocal(AwsS3, s3PluginOptions(s3, s3Meta));
       // Cross-refresh resume: persist the batch manifest + multipart part state (+ small blobs) to
       // IndexedDB. On reload, restored non-ghost files auto-resume (AwsS3 reconciles via listParts);
       // ghost files (large local blobs over the IndexedDB cap) can't be re-read and need reselection.
-      useLocal(GoldenRetriever, { serviceWorker: false });
+      mountLocal(GoldenRetriever, { serviceWorker: false });
       local.on("restored", () => {
         const autoResumed: { id: string; name: string; size?: number | null }[] = [];
         const needsReselection: { id: string; name: string; size?: number | null }[] = [];
@@ -291,7 +292,6 @@ export function useUppyImport(opts: UppyImportOptions) {
     }
     return { remoteUppy: remote, localUppy: local };
     // Endpoints/keys are resolved per upload via the DestinationPort, never baked in.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [companionUrl, concurrency, stallMs, s3Mode]);
 
   useEffect(() => {
