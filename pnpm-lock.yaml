@@ -63,7 +63,7 @@ importers:
         specifier: ^0.1.0
         version: link:../../packages/editor
       '@aleup/import':
-        specifier: ^0.1.0
+        specifier: ^0.1.1
         version: 0.1.1(@uppy/box@4.1.0(@uppy/core@5.2.0))(@uppy/companion-client@5.1.1(@uppy/core@5.2.0))(@uppy/core@5.2.0)(@uppy/dropbox@5.1.0(@uppy/core@5.2.0))(@uppy/google-drive@5.1.0(@uppy/core@5.2.0))(@uppy/onedrive@5.1.0(@uppy/core@5.2.0))(@uppy/xhr-upload@5.2.0(@uppy/core@5.2.0))(react@19.2.7)
       '@aleup/pdf':
         specifier: ^0.1.0
@@ -148,7 +148,7 @@ importers:
         specifier: ^0.1.0
         version: link:../../packages/editor
       '@aleup/import':
-        specifier: ^0.1.0
+        specifier: ^0.1.1
         version: 0.1.1(@uppy/box@4.1.0(@uppy/core@5.2.0))(@uppy/companion-client@5.1.1(@uppy/core@5.2.0))(@uppy/core@5.2.0)(@uppy/dropbox@5.1.0(@uppy/core@5.2.0))(@uppy/google-drive@5.1.0(@uppy/core@5.2.0))(@uppy/onedrive@5.1.0(@uppy/core@5.2.0))(@uppy/xhr-upload@5.2.0(@uppy/core@5.2.0))(react@19.2.7)
       '@aleup/pdf':
         specifier: ^0.1.0
@@ -236,7 +236,7 @@ importers:
         specifier: ^0.1.0
         version: link:../../packages/editor
       '@aleup/import':
-        specifier: ^0.1.0
+        specifier: ^0.1.1
         version: 0.1.1(@uppy/box@4.1.0(@uppy/core@5.2.0))(@uppy/companion-client@5.1.1(@uppy/core@5.2.0))(@uppy/core@5.2.0)(@uppy/dropbox@5.1.0(@uppy/core@5.2.0))(@uppy/google-drive@5.1.0(@uppy/core@5.2.0))(@uppy/onedrive@5.1.0(@uppy/core@5.2.0))(@uppy/xhr-upload@5.2.0(@uppy/core@5.2.0))(react@19.2.7)
       '@aleup/pdf':
         specifier: ^0.1.0
