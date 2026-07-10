@@ -7,6 +7,7 @@
 import { expect, test } from "vitest";
 import Uppy from "@uppy/core";
 import XHRUpload from "@uppy/xhr-upload";
+import AwsS3 from "@uppy/aws-s3";
 import GoogleDrive from "@uppy/google-drive";
 import { providerClient } from "./client.js";
 
@@ -66,6 +67,26 @@ test("contract 4: destroy() removes provider plugins — getPlugin/providerClien
   uppy.destroy();
   expect(uppy.getPlugin("GoogleDrive")).toBeFalsy();
   expect(providerClient(uppy, "GoogleDrive")).toBeNull();
+});
+
+test("contract 5: @uppy/aws-s3 installs with our callback set (no companion endpoint)", () => {
+  // PLAN_UPLOAD Phase 2: local uploads use @uppy/aws-s3 in a SECOND instance, driven purely by the
+  // host's presign/finalize callbacks (no Companion). If an Uppy update changes the required option
+  // shape (e.g. renames a callback or makes `endpoint` mandatory), this flags it here.
+  const uppy = new Uppy({ autoProceed: false, restrictions: {} });
+  const use = uppy.use.bind(uppy) as (plugin: unknown, opts?: unknown) => unknown;
+  use(AwsS3, {
+    shouldUseMultipart: () => true,
+    getUploadParameters: async () => ({ method: "PUT", url: "https://s3.example/put", fields: {} }),
+    createMultipartUpload: async () => ({ uploadId: "u1", key: "k1" }),
+    signPart: async () => ({ url: "https://s3.example/part" }),
+    listParts: async () => [],
+    completeMultipartUpload: async () => ({ location: "https://s3.example/k1" }),
+    abortMultipartUpload: async () => {},
+  });
+  // Default plugin id is "AwsS3Multipart" (opts.id || 'AwsS3Multipart').
+  expect(uppy.getPlugin("AwsS3Multipart"), "AwsS3 plugin failed to install with the callback set").toBeTruthy();
+  uppy.destroy();
 });
 
 test("contract 3: explicit stable ids dedup remote adds; distinct ids both land", () => {
