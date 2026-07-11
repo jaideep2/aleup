@@ -251,8 +251,12 @@ export function useUppyImport(opts: UppyImportOptions) {
 
     // ── Local S3 instance (only in s3-multipart mode). No watchdog: local files have no "unreadable
     //    remote source" failure mode, and large multipart uploads legitimately run long. ──
+    // Guarded to the browser: @uppy/golden-retriever (and this instance's plugins) touch
+    // indexedDB/localStorage at construction, which throw during Next.js SSR of the client component.
+    // On the server localUppy falls back to the (SSR-safe) XHR instance; the real S3 instance is
+    // built on the client, which is the only place local uploads actually run.
     let local = remote;
-    if (s3Mode) {
+    if (s3Mode && typeof window !== "undefined") {
       const s3Meta = new Map<string, { key: string; uploadId?: string }>();
       local = new Uppy({ autoProceed: false, allowMultipleUploadBatches: true, restrictions: {} });
       const s3 = () => {
