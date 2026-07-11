@@ -29,7 +29,12 @@ export interface RestoredFile {
 
 export interface ImportCallbacks {
   onProgress?: (state: ImportProgress) => void;
-  onComplete?: (summary: { ok: number; failed: number }) => void | Promise<void>;
+  /**
+   * Fires when a batch finishes. `failedFiles` lists the names of every file that failed (upload
+   * errors AND stall-watchdog abandonments), so a host can show which files to retry — not just a
+   * count. Same population that `onError`'s message summarizes (which truncates to the first few).
+   */
+  onComplete?: (summary: { ok: number; failed: number; failedFiles: string[] }) => void | Promise<void>;
   onError?: (message: string) => void;
   /** Fires per successful upload with the destination route's response body. */
   onFileUploaded?: (file: { name: string; response: unknown }) => void;
