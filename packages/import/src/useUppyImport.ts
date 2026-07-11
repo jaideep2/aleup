@@ -155,7 +155,7 @@ function attachProgress(
     }
   });
   instance.on("complete", () => {
-    const summary = { ok: done - failed, failed };
+    const summary = { ok: done - failed, failed, failedFiles: [...failedNames] };
     if (failedNames.length) {
       const names = failedNames.slice(0, 3).join(", ");
       const more = failedNames.length > 3 ? ` and ${failedNames.length - 3} more` : "";
