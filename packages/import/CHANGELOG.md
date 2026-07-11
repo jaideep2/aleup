@@ -1,5 +1,11 @@
 # @aleup/import
 
+## 0.3.0
+
+### Minor Changes
+
+- fa8d421: `useUppyImport`'s `onComplete` summary now includes `failedFiles: string[]` — the names of every file that failed in the batch (upload errors and stall-watchdog abandonments), so hosts can show a list of which files to retry instead of only a count. The `onError` message (truncated to the first few names) is unchanged.
+
 ## 0.2.0
 
 ### Minor Changes
