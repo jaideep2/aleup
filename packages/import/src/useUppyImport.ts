@@ -70,91 +70,36 @@ function defaultTransform(item: CompanionItem): { name: string; type: string } {
 type OptsRef = React.RefObject<UppyImportOptions>;
 
 /**
- * Wire one Uppy instance's progress accounting + (optionally) the stall watchdog, reporting through
- * the host callbacks. Each call keeps its OWN counters, so two instances don't share state. A
- * `finalize` hook (S3 local mode) runs after a file's bytes land and its return becomes the
- * onFileUploaded response; a throw there marks the file failed.
+ * Progress tracker SHARED across both Uppy instances (remoteUppy XHR + localUppy S3). A single
+ * logical batch can span both instances (a create-vault dialog can queue local files AND a Drive
+ * import), and the S3 `finalize` seam is async and settles AFTER Uppy's `complete` event fires. So
+ * the "batch finished" summary must wait until **every** attached instance has completed AND **every**
+ * pending finalize has settled — otherwise onComplete reports wrong counts and a finalize failure
+ * surfaces as an error toast *after* "done". Counters are shared, so a mixed batch reports one
+ * coherent {total,done,failed} and fires onComplete exactly once.
  */
-function attachProgress(
-  instance: Uppy,
-  optsRef: OptsRef,
-  cfg: { watchdog: boolean; stallMs: number; finalize?: (file: UppyFileLike, response: unknown) => Promise<unknown> },
-): void {
+function createProgressTracker(optsRef: OptsRef, stallMs: number) {
   let total = 0;
   let done = 0;
   let failed = 0;
   let failedNames: string[] = [];
-  const report = () => optsRef.current.onProgress?.({ phase: "uploading", total, done, failed });
-
-  // Stall watchdog (remote imports only): a file that STARTED transferring but then goes silent for
-  // stallMs is abandoned + counted failed. Only files that produced real bytes are watched.
+  const active = new Set<Uppy>(); // instances with an upload currently in flight
+  let pendingFinalizes = 0; // async finalize()s not yet settled
+  let started = false; // a real (non-empty) batch has begun — guards empty upload() calls
   const lastActivity = new Map<string, { name: string; at: number }>();
   let watchdog: ReturnType<typeof setInterval> | null = null;
+
+  const report = () => optsRef.current.onProgress?.({ phase: "uploading", total, done, failed });
   const stopWatchdog = () => {
     if (watchdog) {
       clearInterval(watchdog);
       watchdog = null;
     }
   };
-  const runWatchdog = () => {
-    const now = Date.now();
-    for (const [id, entry] of lastActivity) {
-      if (now - entry.at <= cfg.stallMs) continue;
-      lastActivity.delete(id);
-      done++;
-      failed++;
-      failedNames.push(entry.name);
-      report();
-      instance.removeFile(id); // aborts the in-flight transfer + retry loop
-    }
-  };
 
-  instance.on("upload", (_uploadId, files) => {
-    total += files.length;
-    if (cfg.watchdog) watchdog ??= setInterval(runWatchdog, 10_000);
-    report();
-  });
-  instance.on("upload-progress", (file, progress) => {
-    if (cfg.watchdog && file && (progress?.bytesUploaded ?? 0) > 0) {
-      lastActivity.set(file.id, { name: file.name ?? "file", at: Date.now() });
-    }
-  });
-  instance.on("upload-success", (file, response) => {
-    if (file) lastActivity.delete(file.id);
-    done++;
-    report();
-    const rawBody = (response as { body?: unknown })?.body;
-    const emit = (body: unknown) => {
-      optsRef.current.onFileUploaded?.({ name: file?.name ?? "", response: body });
-      optsRef.current.destination.onFileUploaded?.({ id: file?.id, name: file?.name ?? "", response: body });
-    };
-    if (!cfg.finalize || !file) {
-      emit(rawBody);
-      return;
-    }
-    // S3 local mode: run the host's finalize seam, then emit its result. A finalize failure counts
-    // the file as failed and skips onFileUploaded (no Document was created).
-    void cfg
-      .finalize(file as unknown as UppyFileLike, response)
-      .then((body) => emit(body))
-      .catch((err) => {
-        failed++;
-        if (file.name) failedNames.push(file.name);
-        report();
-        optsRef.current.onError?.(err instanceof Error ? err.message : "Finalizing an upload failed.");
-      });
-  });
-  instance.on("upload-error", (file, _err, response) => {
-    if (file) lastActivity.delete(file.id);
-    done++;
-    failed++;
-    if (file?.name) failedNames.push(file.name);
-    report();
-    if (response?.status === 415) {
-      optsRef.current.onError?.("Some files were skipped because their type isn't allowed.");
-    }
-  });
-  instance.on("complete", () => {
+  // Fire the batch summary only once ALL instances have completed and ALL finalizes have settled.
+  function finishIfDone(): void {
+    if (active.size > 0 || pendingFinalizes > 0 || !started) return;
     const summary = { ok: done - failed, failed, failedFiles: [...failedNames] };
     if (failedNames.length) {
       const names = failedNames.slice(0, 3).join(", ");
@@ -169,14 +114,91 @@ function attachProgress(
     done = 0;
     failed = 0;
     failedNames = [];
+    started = false;
     lastActivity.clear();
     stopWatchdog();
     void (async () => {
       await optsRef.current.onComplete?.(summary);
       optsRef.current.onProgress?.(null);
     })();
-    instance.clear(); // fresh slate for the next batch
-  });
+  }
+
+  function attach(
+    instance: Uppy,
+    cfg: { watchdog: boolean; finalize?: (file: UppyFileLike, response: unknown) => Promise<unknown> },
+  ): void {
+    const runWatchdog = () => {
+      const now = Date.now();
+      for (const [id, entry] of lastActivity) {
+        if (now - entry.at <= stallMs) continue;
+        lastActivity.delete(id);
+        done++;
+        failed++;
+        failedNames.push(entry.name);
+        report();
+        instance.removeFile(id); // aborts the in-flight transfer + retry loop
+      }
+    };
+    instance.on("upload", (_uploadId, files) => {
+      if (!files.length) return; // ignore empty upload() calls (e.g. startUpload on an empty instance)
+      active.add(instance);
+      started = true;
+      total += files.length;
+      if (cfg.watchdog) watchdog ??= setInterval(runWatchdog, 10_000);
+      report();
+    });
+    instance.on("upload-progress", (file, progress) => {
+      if (cfg.watchdog && file && (progress?.bytesUploaded ?? 0) > 0) {
+        lastActivity.set(file.id, { name: file.name ?? "file", at: Date.now() });
+      }
+    });
+    instance.on("upload-success", (file, response) => {
+      if (file) lastActivity.delete(file.id);
+      done++;
+      report();
+      const emit = (body: unknown) => {
+        optsRef.current.onFileUploaded?.({ name: file?.name ?? "", response: body });
+        optsRef.current.destination.onFileUploaded?.({ id: file?.id, name: file?.name ?? "", response: body });
+      };
+      if (!cfg.finalize || !file) {
+        emit((response as { body?: unknown })?.body);
+        return;
+      }
+      // S3 local mode: the host's finalize seam creates the Document. It's async and resolves AFTER
+      // this event — hold the batch open via pendingFinalizes so `complete` can't finish early.
+      pendingFinalizes++;
+      void cfg
+        .finalize(file as unknown as UppyFileLike, response)
+        .then((body) => emit(body))
+        .catch((err) => {
+          failed++;
+          if (file.name) failedNames.push(file.name);
+          report();
+          optsRef.current.onError?.(err instanceof Error ? err.message : "Finalizing an upload failed.");
+        })
+        .finally(() => {
+          pendingFinalizes--;
+          finishIfDone();
+        });
+    });
+    instance.on("upload-error", (file, _err, response) => {
+      if (file) lastActivity.delete(file.id);
+      done++;
+      failed++;
+      if (file?.name) failedNames.push(file.name);
+      report();
+      if (response?.status === 415) {
+        optsRef.current.onError?.("Some files were skipped because their type isn't allowed.");
+      }
+    });
+    instance.on("complete", () => {
+      active.delete(instance);
+      instance.clear(); // fresh slate for the next batch on this instance
+      finishIfDone(); // may still be waiting on the other instance or on pending finalizes
+    });
+  }
+
+  return { attach };
 }
 
 /**
@@ -230,6 +252,9 @@ export function useUppyImport(opts: UppyImportOptions) {
   const pendingDestroy = useRef<{ instances: Uppy[]; timer: ReturnType<typeof setTimeout> } | null>(null);
 
   const { remoteUppy, localUppy } = useMemo(() => {
+    // One tracker shared by both instances so a batch spanning both fires onComplete once.
+    const tracker = createProgressTracker(optsRef, stallMs);
+
     // ── Remote/provider instance (XHRUpload + Companion). Also serves local files in "xhr" mode. ──
     const remote = new Uppy({
       autoProceed: false,
@@ -247,7 +272,7 @@ export function useUppyImport(opts: UppyImportOptions) {
     for (const reg of optsRef.current.providers ?? []) {
       use(reg.plugin, { id: reg.pluginId, companionUrl });
     }
-    attachProgress(remote, optsRef, { watchdog: true, stallMs });
+    tracker.attach(remote, { watchdog: true });
 
     // ── Local S3 instance (only in s3-multipart mode). No watchdog: local files have no "unreadable
     //    remote source" failure mode, and large multipart uploads legitimately run long. ──
@@ -284,13 +309,19 @@ export function useUppyImport(opts: UppyImportOptions) {
         optsRef.current.onRestored?.({ autoResumed, needsReselection });
         if (autoResumed.length) void local.upload(); // resume what we can
       });
-      attachProgress(local, optsRef, {
+      tracker.attach(local, {
         watchdog: false,
-        stallMs,
         finalize: async (file) => {
-          const meta = s3Meta.get(file.id);
+          // Prefer the key we recorded at create/sign time; fall back to the plugin-persisted state
+          // (@uppy/aws-s3 stores key/uploadId on the file) so a golden-retriever multipart RESUME —
+          // which doesn't re-run createMultipartUpload — still finalizes against the right object.
+          const persisted = file as { s3Multipart?: { key?: string; uploadId?: string } };
+          const meta = s3Meta.get(file.id) ?? {
+            key: persisted.s3Multipart?.key ?? "",
+            uploadId: persisted.s3Multipart?.uploadId,
+          };
           s3Meta.delete(file.id);
-          return s3().onObjectUploaded(file, { key: meta?.key ?? "", uploadId: meta?.uploadId });
+          return s3().onObjectUploaded(file, { key: meta.key ?? "", uploadId: meta.uploadId });
         },
       });
     }
@@ -438,10 +469,15 @@ export function useUppyImport(opts: UppyImportOptions) {
     }
   }
 
-  /** Start uploading everything queued across both instances (for hosts batching local + remote). */
+  /**
+   * Start uploading everything queued across both instances (for hosts batching local + remote).
+   * Only start an instance that actually has files queued — calling upload() on an empty instance
+   * still fires a `complete` event, which would prematurely finish/duplicate the batch summary.
+   */
   function startUpload() {
-    const jobs = [remoteUppy.upload()];
-    if (remoteUppy !== localUppy) jobs.push(localUppy.upload());
+    const jobs: Promise<unknown>[] = [];
+    if (remoteUppy.getFiles().length > 0) jobs.push(remoteUppy.upload());
+    if (remoteUppy !== localUppy && localUppy.getFiles().length > 0) jobs.push(localUppy.upload());
     return Promise.all(jobs);
   }
 
