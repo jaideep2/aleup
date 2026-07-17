@@ -31,7 +31,7 @@ import {
   type UppyFileLike,
 } from "@aleup/core";
 import { providerClient, type CompanionClient } from "./client.js";
-import type { CompanionItem, ImportCallbacks, ProviderRegistration } from "./types.js";
+import type { CompanionItem, ImportCallbacks, LocalFileEntry, ProviderRegistration } from "./types.js";
 
 export interface UppyImportOptions extends ImportCallbacks {
   /** Where bytes go — the host's policy (signed-token route, S3 multipart, …). */
@@ -266,7 +266,9 @@ export function useUppyImport(opts: UppyImportOptions) {
       fieldName: "file",
       formData: true,
       limit: concurrency,
-      allowedMetaFields: [...new Set([...Object.keys(optsRef.current.meta?.() ?? {}), "type", "name"])],
+      // relativePath is per-file meta (folder imports), not from the host's MetaSupplier —
+      // it must be listed here or XHR/Companion silently drop it from the form fields.
+      allowedMetaFields: [...new Set([...Object.keys(optsRef.current.meta?.() ?? {}), "type", "name", "relativePath"])],
     });
     const use = remote.use.bind(remote) as (plugin: unknown, opts?: unknown) => unknown;
     for (const reg of optsRef.current.providers ?? []) {
@@ -363,18 +365,21 @@ export function useUppyImport(opts: UppyImportOptions) {
   /**
    * Add local File objects and start the upload. In s3-multipart mode they go to the S3 instance
    * (resumable, direct-to-storage); otherwise they XHR-POST to the host's local target (today's path).
+   * Entries may carry per-file meta (e.g. relativePath from a folder upload's webkitRelativePath),
+   * merged over the host's MetaSupplier; plain File[] still works.
    */
-  async function uploadLocalFiles(files: File[], o?: { start?: boolean }): Promise<void> {
+  async function uploadLocalFiles(files: LocalFileEntry[], o?: { start?: boolean }): Promise<void> {
     if (!files.length) return;
+    const entries = files.map((f) => (f instanceof File ? { file: f, meta: undefined } : f));
 
     if (s3Mode) {
-      for (const file of files) {
+      for (const { file, meta } of entries) {
         try {
           localUppy.addFile({
             name: file.name,
             type: file.type,
             data: file,
-            meta: { ...optsRef.current.meta?.() },
+            meta: { ...optsRef.current.meta?.(), ...meta },
           } as never);
         } catch {
           /* duplicate in batch — skip */
@@ -385,13 +390,13 @@ export function useUppyImport(opts: UppyImportOptions) {
     }
 
     const target = await optsRef.current.destination.localUploadTarget();
-    for (const file of files) {
+    for (const { file, meta } of entries) {
       try {
         const id = remoteUppy.addFile({
           name: file.name,
           type: file.type,
           data: file,
-          meta: { ...optsRef.current.meta?.() },
+          meta: { ...optsRef.current.meta?.(), ...meta },
         } as never);
         // Per-file endpoint (Uppy core drops unknown top-level addFile keys; must use setFileState).
         remoteUppy.setFileState(id, {
@@ -436,7 +441,11 @@ export function useUppyImport(opts: UppyImportOptions) {
             type,
             isRemote: true,
             data: { size: item.size ?? null },
-            meta: { ...optsRef.current.meta?.(), type },
+            meta: {
+              ...optsRef.current.meta?.(),
+              type,
+              ...(item.relativePath ? { relativePath: item.relativePath } : {}),
+            },
             body: { fileId: item.id },
             remote: {
               companionUrl,

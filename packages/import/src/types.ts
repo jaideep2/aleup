@@ -10,7 +10,20 @@ export interface CompanionItem {
   /** Provider icon URL — for Drive it encodes the TRUE item type, which is the only
    *  way to spot shortcuts-to-folders that the adapter mislabels as files. */
   icon?: string;
+  /**
+   * Containing-folder path relative to the selection root, `/`-separated, including the
+   * selected folder's own name, no filename (picking folder `Evidence` gives the file at
+   * Evidence/2023/a.pdf a relativePath of "Evidence/2023"). Set by folder expansion only —
+   * directly-picked files carry none.
+   */
+  relativePath?: string;
 }
+
+/**
+ * Input to uploadLocalFiles: a File, or a File with per-file Uppy meta (merged over the
+ * host's MetaSupplier) — e.g. relativePath derived from a folder upload's webkitRelativePath.
+ */
+export type LocalFileEntry = File | { file: File; meta?: Record<string, string> };
 
 export type ImportProgress = {
   /** "importing" = remote setup/streaming not yet producing upload events; "uploading" = live batch. */
