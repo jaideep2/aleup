@@ -199,28 +199,33 @@ export function useCloudDrivePicker({
   }, [allSelected, items, selected]);
 
   // Expand selected folders client-side (breadth-first, capped) so the import gets a
-  // flat file list.
+  // flat file list. Each expanded file carries `relativePath` (its containing folder
+  // relative to the selection, including the picked folder's name) so hosts can
+  // recreate the tree; directly-picked files carry none.
   const expandSelection = useCallback(async (): Promise<CompanionItem[]> => {
     const files: CompanionItem[] = [];
-    const queue: string[] = [];
+    const queue: { requestPath: string; relPath: string }[] = [];
     for (const item of selected.values()) {
-      if (item.isFolder) queue.push(item.requestPath);
+      if (item.isFolder) queue.push({ requestPath: item.requestPath, relPath: item.name });
       else files.push(item);
     }
     while (queue.length && files.length < expansionCap) {
       const dir = queue.shift()!;
-      let page: string | null = dir;
+      let page: string | null = dir.requestPath;
       while (page && files.length < expansionCap) {
         const res: ListResponse = await provider!.list<ListResponse>(page, {});
         for (const child of res.items ?? []) {
           if (isFolderShortcut(child)) continue; // guaranteed 404 on download — skip
-          if (child.isFolder) queue.push(child.requestPath);
-          else if (isFileSelectable(child.mimeType)) files.push(child);
+          if (child.isFolder)
+            queue.push({ requestPath: child.requestPath, relPath: `${dir.relPath}/${child.name}` });
+          else if (isFileSelectable(child.mimeType))
+            files.push({ ...child, relativePath: dir.relPath });
         }
         page = res.nextPagePath ?? null;
       }
     }
-    // Dedup by provider file id (a file picked directly AND via its folder).
+    // Dedup by provider file id (a file picked directly AND via its folder). Map keeps the
+    // LAST entry, so the folder-expanded one wins and the import mirrors the source tree.
     return [...new Map(files.map((f) => [f.id, f])).values()];
   }, [selected, provider, isFileSelectable, expansionCap]);
 

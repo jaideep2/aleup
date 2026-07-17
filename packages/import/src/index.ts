@@ -9,5 +9,6 @@ export type {
   CompanionItem,
   ImportCallbacks,
   ImportProgress,
+  LocalFileEntry,
   ProviderRegistration,
 } from "./types.js";
