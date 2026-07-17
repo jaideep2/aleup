@@ -12,7 +12,7 @@
   "dependencies": {
     "@aleup/core": "^0.1.0",
     "@aleup/editor": "^0.1.0",
-    "@aleup/import": "^0.3.1",
+    "@aleup/import": "^0.4.0",
     "@aleup/pdf": "^0.1.0",
     "@aleup/view": "^0.1.0",
     "@emotion/react": "^11.14.0",
